@@ -1,0 +1,39 @@
+// PC.hdl: 16-bit Program Counter (Priority: reset > load > inc)
+CHIP PC {
+    IN in[16], reset, load, inc, clock;
+    OUT out[16];
+
+    PARTS:
+    // Current state of the counter (with explicit clock)
+    Register(in=nextValue, load=true, clock=clock, out=currentOut);
+
+    // Compute next value based on control signals
+    Inc16(in=currentOut, out=incrementedOut);  // currentOut + 1
+
+    // Control logic for Mux4Way16 selection
+    Not(in=reset, out=notReset);
+    Not(in=load, out=notLoad);
+
+    // sel[0] = reset OR (load AND NOT reset)
+    And(a=load, b=notReset, out=loadNotReset);
+    Or(a=reset, b=loadNotReset, out=sel0);
+
+    // sel[1] = reset OR (inc AND NOT reset AND NOT load)
+    And(a=inc, b=notReset, out=incNotReset);
+    And(a=incNotReset, b=notLoad, out=incNotResetNotLoad);
+    Or(a=reset, b=incNotResetNotLoad, out=sel1);
+
+    // Mux4Way16 selects next value (standard implementation)
+    Mux4Way16(
+        a[0..15]=false,  // Reset to 0
+        b=in,            // Load input
+        c=incrementedOut,// Increment
+        d=currentOut,    // Hold value
+        sel[0]=sel0,
+        sel[1]=sel1,
+        out=nextValue
+    );
+
+    // Direct output connection
+    BUFFER(in=currentOut, out=out);
+}
