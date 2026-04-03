@@ -1,0 +1,22 @@
+// RAM16K.hdl: 16-bit RAM with 16384 registers (14-bit address)
+// Built using 4 RAM4K chips (4096 registers each)
+
+CHIP RAM16K {
+    IN in[16], load, address[14], clock;  // Declare clock here
+    OUT out[16];
+
+    PARTS:
+    // Step 1: Split the 14-bit address into:
+    // - Upper 2 bits (address[12..13]) to select the RAM4K chip
+    // - Lower 12 bits (address[0..11]) for the internal RAM4K address
+    DMux4Way(in=load, sel=address[12..13], a=load0, b=load1, c=load2, d=load3);
+
+    // Step 2: Instantiate 4 RAM4K chips (WITHOUT EXPLICIT CLOCK)
+    RAM4K(in=in, load=load0, address=address[0..11], out=ram0);
+    RAM4K(in=in, load=load1, address=address[0..11], out=ram1);
+    RAM4K(in=in, load=load2, address=address[0..11], out=ram2);
+    RAM4K(in=in, load=load3, address=address[0..11], out=ram3);
+
+    // Step 3: Select output from active RAM4K chip
+    Mux4Way16(a=ram0, b=ram1, c=ram2, d=ram3, sel=address[12..13], out=out);
+}
